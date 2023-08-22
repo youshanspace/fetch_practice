@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 
-function App() {
+const App = () => {
   const [userURL, commentURL] = ["/user", "/comment"];
   const [userList, setUserList] = useState([]);
   const [commentList, setCommentList] = useState([]);
@@ -9,65 +9,104 @@ function App() {
     year: 0,
   });
 
+  /* 單個 fetch */
+  // const fetchUserData = async () => {
+  //   try {
+  //     const res = await fetch(userURL);
+  //     if (!res.ok) {
+  //       console.error("Fetch user API error");
+  //       return;
+  //     }
+  //     const resData = await res.json();
+  //     const userData = resData.data;
+  //     if (!userData) {
+  //       console.error("Fetch userData error");
+  //       return;
+  //     }
+  //     console.log(userData);
+  //     setUserList(userData);
+  //   } catch (e) {
+  //     console.error("fetchUserData error:\n", e);
+  //   }
+  // };
+
   /* 多個 fetch */
   const fetchUserDataMulti = () => {
     return fetch(userURL)
-      .then((res) => res.json())
-      .catch((e) => new Error(e));
+      .then((res) => {
+        if (!res.ok) {
+          console.error("Fetch user API error");
+          return Promise.resolve("");
+        } else {
+          return res.json();
+        }
+      })
+      .catch((e) => {
+        console.error("Fetch userMulti API error:\n", e);
+        return Promise.resolve("");
+      });
   };
   const fetchCommentDataMulti = () => {
     return fetch(commentURL)
-      .then((res) => res.json())
-      .catch((e) => new Error(e));
+      .then((res) => {
+        if (!res.ok) {
+          console.error("Fetch comment API error");
+          return Promise.resolve("");
+        } else {
+          return res.json();
+        }
+      })
+      .catch((e) => {
+        console.error("Fetch commentMulti API error\n", e);
+        return Promise.resolve("");
+      });
+  };
+  const fetchData = async () => {
+    const [userJson, commentJson] = await Promise.all([
+      fetchUserDataMulti(),
+      fetchCommentDataMulti(),
+    ]);
+    console.log("userJson:\n", userJson);
+    console.log("commentJson:\n", commentJson);
+    if (userJson.data) {
+      console.log("user list:\n", userJson.data);
+      setUserList(userJson.data);
+    }
+    if (commentJson.data) {
+      console.log("comment list:\n", commentJson.data);
+      setCommentList(commentJson.data);
+    }
   };
 
   useEffect(() => {
-    /* 單個 fetch */
-    // const fetchUserData = async () => {
-    //   const res = await fetch(userURL);
-    //   const resData = await res.json();
-    //   const userData = resData.data;
-    //   console.log("Fetch user data...");
-    //   console.log(userData);
-    //   setUserList(userData);
-    // };
-    // fetchUserData();
-
-    /* 多個 fetch */
-    const fetchData = async () => {
-      const data = await Promise.all([
-        fetchUserDataMulti(),
-        fetchCommentDataMulti(),
-      ]);
-      console.log(data);
-      setUserList(data[0].data);
-      setCommentList(data[1].data);
-    };
     fetchData();
   }, []);
 
-  const addUser = async (formData) => {
-    const res = await fetch(userURL, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(formData),
-    });
-    const resData = await res.json();
-    const userData = resData.data;
-    console.log(userData);
-    setUserList(userData);
-  };
-
-  const handleSubmitUser = (e) => {
-    e.preventDefault();
-    const submitFormData = formData;
-    console.log("Submit form data:");
-    console.log(submitFormData);
-    setFormData({
-      name: "",
-      year: 0,
-    });
-    addUser(submitFormData);
+  const handleSubmitUser = async (e) => {
+    try {
+      e.preventDefault();
+      const submitFormData = formData;
+      console.log("Submit form data:\n", submitFormData);
+      setFormData({
+        name: "",
+        year: 0,
+      });
+      const res = await fetch(userURL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(submitFormData),
+      });
+      // POST ok -> ReFetch
+      if (res.ok) {
+        const userJson = await fetchUserDataMulti();
+        if (userJson.data) {
+          console.log("ReFetch user list:\n", userJson.data);
+          setUserList(userJson.data);
+        }
+      }
+    } catch (err) {
+      console.error("Post user data error");
+    }
   };
 
   const renderedUserItem = userList.map((user, index) => (
@@ -86,9 +125,8 @@ function App() {
   ));
 
   return (
-    <div className="App">
+    <div>
       <form onSubmit={handleSubmitUser}>
-        <br />
         <label>Name: </label>
         <input
           type="text"
@@ -101,7 +139,6 @@ function App() {
             })
           }
         />
-        <br />
         <label>Year: </label>
         <input
           type="text"
@@ -114,10 +151,8 @@ function App() {
             })
           }
         />
-        <br />
         <button type="submit">Add</button>
       </form>
-
       <div>
         <div>User List:</div>
         <table border={1}>
@@ -131,7 +166,6 @@ function App() {
           <tbody>{renderedUserItem}</tbody>
         </table>
       </div>
-
       <div>
         <div>Comment List:</div>
         <table border={1}>
@@ -147,6 +181,6 @@ function App() {
       </div>
     </div>
   );
-}
+};
 
 export default App;
