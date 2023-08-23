@@ -1,4 +1,5 @@
 import {useEffect, useState} from "react";
+import TodoList from "./components/TodoList";
 
 const App = () => {
   const [userURL, commentURL] = ["/user", "/comment"];
@@ -179,6 +180,7 @@ const App = () => {
           <tbody>{renderedCommentItem}</tbody>
         </table>
       </div>
+      <TodoList />
     </div>
   );
 };
